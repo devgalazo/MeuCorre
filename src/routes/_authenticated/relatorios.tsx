@@ -50,10 +50,43 @@ function Relatorios() {
         }
         return row;
       });
+      const platformDetailRows = monthDays.flatMap((d) => d.day_platforms.map((dp) => {
+        const platform = platforms.find((p) => p.id === dp.platform_id);
+        return {
+          Data: d.date,
+          Aplicativo: platform?.name ?? "Aplicativo removido",
+          Faturamento: Number(dp.total) > 0 ? dp.total : Number(dp.cash || 0) + Number(dp.card || 0) + Number(dp.tips || 0),
+          Dinheiro: dp.cash,
+          Cartão: dp.card,
+          Gorjetas: dp.tips,
+          Corridas: dp.trips,
+          "Horas online": dp.hours,
+        };
+      }));
+      const fuelingRows = monthDays.flatMap((d) => d.fuelings.map((f) => ({
+        Data: d.date,
+        Valor: f.amount,
+        Litros: f.liters ?? "",
+        "Preço por litro": f.liters && f.liters > 0 ? Number((f.amount / f.liters).toFixed(3)) : "",
+      })));
       const expenseRows = expenses.filter((e) => e.month.slice(0, 7) === month).map((e) => ({ Mês: e.month.slice(0, 7), Categoria: e.category, Descrição: e.description, Valor: e.amount }));
+      const summaryRows = [
+        { Indicador: "Faturamento", Valor: totals.ganhos },
+        { Indicador: "Lucro operacional", Valor: totals.lucroOp },
+        { Indicador: "Sobra antes dos gastos fixos", Valor: totals.sobra },
+        { Indicador: "Gastos fixos mensais", Valor: fixedExpenses },
+        { Indicador: "Sobra final estimada", Valor: finalBalance },
+        { Indicador: "KM rodados", Valor: totals.km },
+        { Indicador: "Horas online", Valor: totals.horas },
+        { Indicador: "R$/hora operacional", Valor: totals.porHora },
+        { Indicador: "R$/km operacional", Valor: totals.porKm },
+      ];
       const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(summaryRows), "Resumo");
       XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(dayRows), "Dias");
-      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(byPlatform), "Por aplicativo");
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(byPlatform), "Resumo por app");
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(platformDetailRows), "Detalhe por app");
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(fuelingRows), "Abastecimentos");
       XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(expenseRows), "Gastos mensais");
       XLSX.writeFile(workbook, "corre-moto-" + month + ".xlsx");
       toast.success("Planilha exportada.");

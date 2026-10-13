@@ -67,7 +67,11 @@ export function parseHours(s: string): number {
   const v = s.trim().toLowerCase();
   if (!v) return 0;
   const m = v.match(/^(\d+)\s*[h:]\s*(\d{0,2})\s*(m|min)?$/);
-  if (m) {\n    const minutes = m[2] ? Number(m[2]) : 0;\n    if (minutes > 59) return 0;\n    return Number(m[1]) + minutes / 60;\n  }
+  if (m) {
+    const minutes = m[2] ? Number(m[2]) : 0;
+    if (minutes > 59) return 0;
+    return Number(m[1]) + minutes / 60;
+  }
   return Number(v.replace(",", ".")) || 0;
 }
 export const parseMoney = (s: string) => Number(String(s).replace(/\./g, (m, i, str) => (str.includes(",") ? "" : m)).replace(",", ".")) || 0;

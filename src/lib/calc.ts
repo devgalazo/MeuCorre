@@ -62,6 +62,15 @@ export function fmtHours(h: number) {
   return `${hh}h${mm ? String(mm).padStart(2, "0") : ""}`;
 }
 
+/** Valida o texto das horas sem impedir a digitação de valores decimais com vírgula. */
+export function isValidHoursInput(value: string): boolean {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return true;
+  const clock = trimmed.match(/^(\\d+)\\s*[h:]\\s*(\\d{0,2})\\s*(m|min)?$/);
+  if (clock) return Number(clock[2] || 0) < 60;
+  return /^\\d+(?:[.,]\\d+)?$/.test(trimmed);
+}
+
 /** Aceita "7h30", "7:30", "7,5" ou "7.5" */
 export function parseHours(s: string): number {
   const v = s.trim().toLowerCase();

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { settingsQuery, platformsQuery, monthlyQuery, uid, useInvalidate } from "@/lib/data";
-import { brl, today, WEEKDAYS } from "@/lib/calc";
+import { brl, today, WEEKDAYS, parseMoney } from "@/lib/calc";
 
 export const Route = createFileRoute("/_authenticated/ajustes")({
   head: () => ({ meta: [{ title: "Ajustes — Corre Moto" }] }),
@@ -70,7 +70,7 @@ function Ajustes() {
   const addExpense = useMutation({
     mutationFn: async () => {
       if (!expenseDescription.trim()) throw new Error("Informe a descrição do gasto.");
-      const amount = Number(expenseAmount.replace(",", "."));
+      const amount = parseMoney(expenseAmount);
       if (!Number.isFinite(amount) || amount <= 0) throw new Error("Informe um valor válido.");
       const user_id = await uid();
       const { error } = await supabase.from("monthly_expenses").insert({

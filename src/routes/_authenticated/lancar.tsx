@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader, Card, NumField } from "@/components/app/bits";
 import { daysQuery, platformsQuery, saveDay, useInvalidate } from "@/lib/data";
-import { appTotal, parseHours, parseMoney, today, brl, type Day, type DayPlatform, type Fueling } from "@/lib/calc";
+import { appTotal, isValidHoursInput, parseHours, parseMoney, today, brl, type Day, type DayPlatform, type Fueling } from "@/lib/calc";
 
 export const Route = createFileRoute("/_authenticated/lancar")({
   validateSearch: (search: Record<string, unknown>) => ({ id: typeof search.id === "string" ? search.id : undefined, date: typeof search.date === "string" ? search.date : undefined }),
@@ -19,14 +19,6 @@ export const Route = createFileRoute("/_authenticated/lancar")({
 const emptyPlatform = (platform_id: string): DayPlatform => ({ platform_id, total: 0, cash: 0, card: 0, tips: 0, trips: 0, hours: 0 });
 const money = (v: number) => v ? String(v).replace(".", ",") : "";
 type FuelForm = { id?: string; amount: string; liters: string };
-
-const validHoursInput = (value: string) => {
-  const trimmed = value.trim().toLowerCase();
-  if (!trimmed) return true;
-  const clock = trimmed.match(/^(\d+)\s*[h:]\s*(\d{0,2})\s*(m|min)?$/);
-  if (clock) return Number(clock[2] || 0) < 60;
-  return /^\d+(?:[.,]\d+)?$/.test(trimmed);
-};
 
 const initialDay = (date: string, platformIds: string[]) => ({
   id: undefined as string | undefined, date, km: "", maintenance: "", equipment: "", pass: "", food: "", other: "", notes: "",
@@ -85,7 +77,7 @@ function Lancar() {
   const mutation = useMutation({
     mutationFn: async () => {
       if (!form.date) throw new Error("Escolha a data do lançamento.");
-      if (Object.values(rawHours).some((value) => !validHoursInput(value))) {
+      if (Object.values(rawHours).some((value) => !isValidHoursInput(value))) {
         throw new Error("Confira as horas online. Use formatos como 7h30, 7:30 ou 7,5.");
       }
       const amounts = [form.km, form.maintenance, form.equipment, form.pass, form.food, form.other, ...form.fuelings.flatMap((f) => [f.amount, f.liters])];

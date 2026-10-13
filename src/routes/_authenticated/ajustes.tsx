@@ -90,7 +90,8 @@ function Ajustes() {
     onError: () => toast.error("Não foi possível remover o gasto."),
   });
 
-  if (loadingSettings || loadingPlatforms || loadingExpenses) return <div className="p-6 text-sm text-muted-foreground">Carregando ajustes…</div>;\n  if (settingsError || platformsError || expensesError || !settings) return <div className="space-y-2 p-6 text-sm"><p className="font-semibold text-destructive">Não foi possível carregar os ajustes.</p><p className="text-muted-foreground">Verifique sua conexão e tente recarregar a página. Nenhuma alteração foi salva.</p></div>;
+  if (loadingSettings || loadingPlatforms || loadingExpenses) return <div className="p-6 text-sm text-muted-foreground">Carregando ajustes…</div>;
+  if (settingsError || platformsError || expensesError || !settings) return <div className="space-y-2 p-6 text-sm"><p className="font-semibold text-destructive">Não foi possível carregar os ajustes.</p><p className="text-muted-foreground">Verifique sua conexão e tente recarregar a página. Nenhuma alteração foi salva.</p></div>;
   const week = weekStart ?? settings.week_start;
   const last = lastKm ?? (settings.oil_last_km == null ? "" : String(settings.oil_last_km));
   const interval = intervalKm ?? String(settings.oil_interval_km);

@@ -29,7 +29,6 @@ function Layout() {
             <li key={t.to}>
               <Link
                 to={t.to}
-                search={t.to === "/lancar" ? {} : undefined}
                 className="flex flex-col items-center gap-1 py-2 text-[11px] text-muted-foreground"
                 activeProps={{ className: "text-primary" }}
               >

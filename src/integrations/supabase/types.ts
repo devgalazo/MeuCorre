@@ -14,7 +14,221 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      day_platforms: {
+        Row: {
+          card: number
+          cash: number
+          day_id: string
+          hours: number
+          id: string
+          platform_id: string
+          tips: number
+          total: number
+          trips: number
+          user_id: string
+        }
+        Insert: {
+          card?: number
+          cash?: number
+          day_id: string
+          hours?: number
+          id?: string
+          platform_id: string
+          tips?: number
+          total?: number
+          trips?: number
+          user_id: string
+        }
+        Update: {
+          card?: number
+          cash?: number
+          day_id?: string
+          hours?: number
+          id?: string
+          platform_id?: string
+          tips?: number
+          total?: number
+          trips?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_platforms_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "day_platforms_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      days: {
+        Row: {
+          created_at: string
+          date: string
+          equipment: number
+          food: number
+          id: string
+          km: number
+          maintenance: number
+          notes: string | null
+          other: number
+          pass: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          equipment?: number
+          food?: number
+          id?: string
+          km?: number
+          maintenance?: number
+          notes?: string | null
+          other?: number
+          pass?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          equipment?: number
+          food?: number
+          id?: string
+          km?: number
+          maintenance?: number
+          notes?: string | null
+          other?: number
+          pass?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fuelings: {
+        Row: {
+          amount: number
+          day_id: string
+          id: string
+          liters: number | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          day_id: string
+          id?: string
+          liters?: number | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          day_id?: string
+          id?: string
+          liters?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuelings_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "days"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string
+          id: string
+          month: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category: string
+          created_at?: string
+          description: string
+          id?: string
+          month: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          month?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      platforms: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          sort: number
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          kind?: string
+          name: string
+          sort?: number
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          sort?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          odometer_km: number | null
+          oil_interval_km: number
+          oil_last_km: number | null
+          updated_at: string
+          user_id: string
+          week_start: number
+        }
+        Insert: {
+          odometer_km?: number | null
+          oil_interval_km?: number
+          oil_last_km?: number | null
+          updated_at?: string
+          user_id: string
+          week_start?: number
+        }
+        Update: {
+          odometer_km?: number | null
+          oil_interval_km?: number
+          oil_last_km?: number | null
+          updated_at?: string
+          user_id?: string
+          week_start?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

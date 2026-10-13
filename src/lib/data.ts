@@ -107,34 +107,81 @@ export async function saveDay(input: DayInput) {
     dayId = created.id;
   }
 
-  const { error: deletePlatformsError } = await supabase
+  // Update/insert desired child rows first. Only remove obsolete rows after all
+  // writes succeed, so a failed request cannot erase the previous details.
+  const { data: existingPlatforms, error: existingPlatformsError } = await supabase
     .from("day_platforms")
-    .delete()
+    .select("id")
     .eq("user_id", user_id)
     .eq("day_id", dayId);
-  if (deletePlatformsError) throw deletePlatformsError;
+  if (existingPlatformsError) throw existingPlatformsError;
 
-  const { error: deleteFuelingsError } = await supabase
+  const { data: existingFuelings, error: existingFuelingsError } = await supabase
     .from("fuelings")
-    .delete()
+    .select("id")
     .eq("user_id", user_id)
     .eq("day_id", dayId);
-  if (deleteFuelingsError) throw deleteFuelingsError;
+  if (existingFuelingsError) throw existingFuelingsError;
 
-  const dps = input.day_platforms
-    .filter((p) => p.total || p.cash || p.card || p.tips || p.trips || p.hours)
-    .map(({ id: _id, ...p }) => ({ ...p, user_id, day_id: dayId }));
-  if (dps.length) {
-    const { error } = await supabase.from("day_platforms").insert(dps);
-    if (error) throw error;
+  const keptPlatformIds = new Set<string>();
+  const dps = input.day_platforms.filter((p) => p.total || p.cash || p.card || p.tips || p.trips || p.hours);
+  for (const { id, ...platform } of dps) {
+    if (id) {
+      const { data: updated, error } = await supabase
+        .from("day_platforms")
+        .update({ ...platform, user_id, day_id: dayId })
+        .eq("id", id)
+        .eq("user_id", user_id)
+        .eq("day_id", dayId)
+        .select("id")
+        .maybeSingle();
+      if (error) throw error;
+      if (!updated) throw new Error("Um dos registros por aplicativo não foi encontrado. Atualize o Histórico e tente novamente.");
+      keptPlatformIds.add(updated.id);
+    } else {
+      const { data: inserted, error } = await supabase
+        .from("day_platforms")
+        .insert({ ...platform, user_id, day_id: dayId })
+        .select("id")
+        .single();
+      if (error) throw error;
+      keptPlatformIds.add(inserted.id);
+    }
   }
 
-  const fs = input.fuelings
-    .filter((f) => f.amount > 0)
-    .map((f) => ({ amount: f.amount, liters: f.liters, user_id, day_id: dayId }));
-  if (fs.length) {
-    const { error } = await supabase.from("fuelings").insert(fs);
-    if (error) throw error;
+  const keptFuelingIds = new Set<string>();
+  for (const fueling of input.fuelings.filter((f) => f.amount > 0)) {
+    const values = { amount: fueling.amount, liters: fueling.liters, user_id, day_id: dayId };
+    if (fueling.id) {
+      const { data: updated, error } = await supabase
+        .from("fuelings")
+        .update(values)
+        .eq("id", fueling.id)
+        .eq("user_id", user_id)
+        .eq("day_id", dayId)
+        .select("id")
+        .maybeSingle();
+      if (error) throw error;
+      if (!updated) throw new Error("Um dos abastecimentos não foi encontrado. Atualize o Histórico e tente novamente.");
+      keptFuelingIds.add(updated.id);
+    } else {
+      const { data: inserted, error } = await supabase.from("fuelings").insert(values).select("id").single();
+      if (error) throw error;
+      keptFuelingIds.add(inserted.id);
+    }
+  }
+
+  for (const row of existingPlatforms ?? []) {
+    if (!keptPlatformIds.has(row.id)) {
+      const { error } = await supabase.from("day_platforms").delete().eq("id", row.id).eq("user_id", user_id).eq("day_id", dayId);
+      if (error) throw error;
+    }
+  }
+  for (const row of existingFuelings ?? []) {
+    if (!keptFuelingIds.has(row.id)) {
+      const { error } = await supabase.from("fuelings").delete().eq("id", row.id).eq("user_id", user_id).eq("day_id", dayId);
+      if (error) throw error;
+    }
   }
 
   return dayId;

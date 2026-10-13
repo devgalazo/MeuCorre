@@ -35,12 +35,30 @@ function Ajustes() {
   const saveSettings = useMutation({
     mutationFn: async () => {
       const user_id = await uid();
+      const lastValue = lastKm ?? (settings?.oil_last_km == null ? "" : String(settings.oil_last_km));
+      const intervalValue = intervalKm ?? String(settings?.oil_interval_km ?? 1000);
+      const odometerValue = odometer ?? (settings?.odometer_km == null ? "" : String(settings.odometer_km));
+      const oilLastKm = lastValue.trim() ? Number(lastValue) : null;
+      const oilIntervalKm = Number(intervalValue);
+      const odometerKm = odometerValue.trim() ? Number(odometerValue) : null;
+      if (!Number.isFinite(oilIntervalKm) || oilIntervalKm <= 0) {
+        throw new Error("O intervalo da troca de óleo deve ser maior que zero.");
+      }
+      if (oilLastKm != null && (!Number.isFinite(oilLastKm) || oilLastKm < 0)) {
+        throw new Error("Informe um KM válido para a última troca.");
+      }
+      if (odometerKm != null && (!Number.isFinite(odometerKm) || odometerKm < 0)) {
+        throw new Error("Informe um KM atual válido.");
+      }
+      if (oilLastKm != null && odometerKm != null && odometerKm < oilLastKm) {
+        throw new Error("O KM atual não pode ser menor que o KM da última troca.");
+      }
       const row = {
         user_id,
         week_start: weekStart ?? settings?.week_start ?? 1,
-        oil_last_km: (lastKm ?? String(settings?.oil_last_km ?? "")).trim() ? Number(lastKm ?? settings?.oil_last_km) : null,
-        oil_interval_km: Number(intervalKm ?? settings?.oil_interval_km ?? 1000) || 1000,
-        odometer_km: (odometer ?? String(settings?.odometer_km ?? "")).trim() ? Number(odometer ?? settings?.odometer_km) : null,
+        oil_last_km: oilLastKm,
+        oil_interval_km: oilIntervalKm,
+        odometer_km: odometerKm,
       };
       const { error } = await supabase.from("settings").upsert(row, { onConflict: "user_id" });
       if (error) throw error;

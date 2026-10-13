@@ -18,9 +18,9 @@ export const Route = createFileRoute("/_authenticated/lancar")({
 
 const emptyPlatform = (platform_id: string): DayPlatform => ({ platform_id, total: 0, cash: 0, card: 0, tips: 0, trips: 0, hours: 0 });
 const money = (v: number) => v ? String(v).replace(".", ",") : "";
-const initialDay = (date: string, platformIds: string[]) => ({
+type FuelForm = { id?: string; amount: string; liters: string };\n\nconst initialDay = (date: string, platformIds: string[]) => ({
   id: undefined as string | undefined, date, km: "", maintenance: "", equipment: "", pass: "", food: "", other: "", notes: "",
-  day_platforms: platformIds.map(emptyPlatform), fuelings: [{ amount: "", liters: "" }],
+  day_platforms: platformIds.map(emptyPlatform), fuelings: [{ amount: "", liters: "" }] as FuelForm[],
 });
 
 function Lancar() {
@@ -48,7 +48,7 @@ function Lancar() {
           const existing = found.day_platforms.find((x) => x.platform_id === p.id);
           return existing ? { ...existing } : emptyPlatform(p.id);
         }),
-        fuelings: found.fuelings.length ? found.fuelings.map((f) => ({ amount: money(f.amount), liters: f.liters == null ? "" : String(f.liters) })) : [{ amount: "", liters: "" }],
+        fuelings: found.fuelings.length ? found.fuelings.map((f) => ({ id: f.id, amount: money(f.amount), liters: f.liters == null ? "" : String(f.liters) })) : [{ amount: "", liters: "" }],
       });
     } else {
       setForm(initialDay(requestedDate, active.map((p) => p.id)));
@@ -73,7 +73,7 @@ function Lancar() {
         equipment: parseMoney(form.equipment), pass: parseMoney(form.pass), food: parseMoney(form.food),
         other: parseMoney(form.other), notes: form.notes.trim() || null,
         day_platforms: form.day_platforms, fuelings: form.fuelings.map((f) => ({
-          amount: parseMoney(f.amount), liters: f.liters.trim() ? parseMoney(f.liters) : null,
+          id: f.id, amount: parseMoney(f.amount), liters: f.liters.trim() ? parseMoney(f.liters) : null,
         })) as Fueling[],
       };
       return saveDay(input);

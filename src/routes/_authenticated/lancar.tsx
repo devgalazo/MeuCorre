@@ -20,7 +20,15 @@ const emptyPlatform = (platform_id: string): DayPlatform => ({ platform_id, tota
 const money = (v: number) => v ? String(v).replace(".", ",") : "";
 type FuelForm = { id?: string; amount: string; liters: string };
 
-const validHoursInput = (value: string) => {\n  const trimmed = value.trim().toLowerCase();\n  if (!trimmed) return true;\n  const clock = trimmed.match(/^(\\d+)\\s*[h:]\\s*(\\d{0,2})\\s*(m|min)?$/);\n  if (clock) return Number(clock[2] || 0) < 60;\n  return /^\\d+(?:[.,]\\d+)?$/.test(trimmed);\n};\n\nconst initialDay = (date: string, platformIds: string[]) => ({
+const validHoursInput = (value: string) => {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return true;
+  const clock = trimmed.match(/^(\\d+)\\s*[h:]\\s*(\\d{0,2})\\s*(m|min)?$/);
+  if (clock) return Number(clock[2] || 0) < 60;
+  return /^\\d+(?:[.,]\\d+)?$/.test(trimmed);
+};
+
+const initialDay = (date: string, platformIds: string[]) => ({
   id: undefined as string | undefined, date, km: "", maintenance: "", equipment: "", pass: "", food: "", other: "", notes: "",
   day_platforms: platformIds.map(emptyPlatform), fuelings: [{ amount: "", liters: "" }] as FuelForm[],
 });
@@ -69,7 +77,15 @@ function Lancar() {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!form.date) throw new Error("Escolha a data do lançamento.");\n      if (Object.values(rawHours).some((value) => !validHoursInput(value))) {\n        throw new Error("Confira as horas online. Use formatos como 7h30, 7:30 ou 7,5.");\n      }\n      const amounts = [form.km, form.maintenance, form.equipment, form.pass, form.food, form.other, ...form.fuelings.flatMap((f) => [f.amount, f.liters])];\n      if (amounts.some((value) => parseMoney(value) < 0)) throw new Error("Valores e quilometragem não podem ser negativos.");\n      if (form.day_platforms.some((p) => [p.total, p.cash, p.card, p.tips, p.trips, p.hours].some((value) => value < 0))) {\n        throw new Error("Ganhos, corridas e horas não podem ser negativos.");\n      }
+      if (!form.date) throw new Error("Escolha a data do lançamento.");
+      if (Object.values(rawHours).some((value) => !validHoursInput(value))) {
+        throw new Error("Confira as horas online. Use formatos como 7h30, 7:30 ou 7,5.");
+      }
+      const amounts = [form.km, form.maintenance, form.equipment, form.pass, form.food, form.other, ...form.fuelings.flatMap((f) => [f.amount, f.liters])];
+      if (amounts.some((value) => parseMoney(value) < 0)) throw new Error("Valores e quilometragem não podem ser negativos.");
+      if (form.day_platforms.some((p) => [p.total, p.cash, p.card, p.tips, p.trips, p.hours].some((value) => value < 0))) {
+        throw new Error("Ganhos, corridas e horas não podem ser negativos.");
+      }
       const input: Omit<Day, "id"> & { id?: string } = {
         id: form.id, date: form.date, km: parseMoney(form.km), maintenance: parseMoney(form.maintenance),
         equipment: parseMoney(form.equipment), pass: parseMoney(form.pass), food: parseMoney(form.food),

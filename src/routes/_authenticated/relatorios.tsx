@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Download, TrendingUp, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
-import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from "recharts";
 import { PageHeader, Card, Stat, Empty } from "@/components/app/bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,21 @@ function Relatorios() {
   const totals = sumDays(monthDays);
   const fixedExpenses = expenses.filter((e) => e.month.slice(0, 7) === month).reduce((s, e) => s + Number(e.amount || 0), 0);
   const finalBalance = totals.sobra - fixedExpenses;
+  const totalExpenses = totals.despesas + fixedExpenses;
+  const expenseBreakdown = [
+    { name: "Combustível", value: totals.combustivel },
+    { name: "Manutenção", value: totals.manutencao },
+    { name: "Equipamentos", value: totals.equipamentos },
+    { name: "Passe", value: totals.passe },
+    { name: "Alimentação", value: totals.alimentacao },
+    { name: "Outros gastos", value: totals.outros },
+    { name: "Gastos fixos", value: fixedExpenses },
+  ].filter((item) => item.value > 0);
+  const profitExpenseData = [
+    ...expenseBreakdown,
+    ...(finalBalance > 0 ? [{ name: "Lucro líquido estimado", value: finalBalance }] : []),
+  ];
+  const pieColors = ["#2563eb", "#f59e0b", "#8b5cf6", "#06b6d4", "#f97316", "#64748b", "#db2777", "#16a34a"];
   const byPlatform = platforms.map((p) => ({
     name: p.name,
     ganhos: monthDays.reduce((s, d) => s + d.day_platforms.filter((dp) => dp.platform_id === p.id).reduce((a, dp) => a + (Number(dp.total) > 0 ? Number(dp.total) : Number(dp.cash || 0) + Number(dp.card || 0) + Number(dp.tips || 0)), 0), 0),
@@ -121,6 +136,31 @@ function Relatorios() {
         <Card className="space-y-3">
           <h2 className="font-semibold">Evolução diária</h2>
           {daily.length === 0 ? <Empty>Registre os dias para ver a evolução.</Empty> : <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={daily} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" /><XAxis dataKey="date" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip formatter={(v) => brl(Number(v))} /><Line type="monotone" dataKey="faturamento" name="Faturamento" stroke="var(--color-primary)" strokeWidth={2} dot={false} /><Line type="monotone" dataKey="sobra" name="Sobra" stroke="var(--color-chart-3)" strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer></div>}
+        </Card>
+        <Card className="space-y-3">
+          <div className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-primary" /><h2 className="font-semibold">Lucro e despesas por categoria</h2></div>
+          <p className="text-xs text-muted-foreground">Distribuição do faturamento do mês entre os gastos registrados e o lucro líquido estimado. Os gastos fixos vêm de Ajustes.</p>
+          {profitExpenseData.length === 0 ? <Empty>Registre faturamentos ou despesas para visualizar a distribuição.</Empty> : <>
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={profitExpenseData} dataKey="value" nameKey="name" cx="50%" cy="45%" innerRadius={58} outerRadius={94} paddingAngle={2}>
+                    {profitExpenseData.map((entry, index) => <Cell key={entry.name} fill={pieColors[index % pieColors.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(value) => brl(Number(value))} />
+                  <Legend verticalAlign="bottom" height={54} wrapperStyle={{ fontSize: 11 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="grid grid-cols-2 gap-3 border-t pt-3">
+              <Stat label="Faturamento" value={brl(totals.ganhos)} />
+              <Stat label="Despesas totais" value={brl(totalExpenses)} tone="neg" />
+              <div className="col-span-2 rounded-lg bg-muted/40 p-3">
+                <Stat label={finalBalance < 0 ? "Déficit estimado" : "Lucro líquido estimado"} value={brl(finalBalance)} tone={finalBalance < 0 ? "neg" : "pos"} />
+              </div>
+            </div>
+            {finalBalance < 0 && <p className="text-xs text-muted-foreground">As despesas superaram o faturamento neste mês; por isso o déficit aparece no resumo, e o gráfico detalha a composição dos gastos.</p>}
+          </>}
         </Card>
         <Card className="space-y-3">
           <h2 className="font-semibold">Detalhamento diário</h2>

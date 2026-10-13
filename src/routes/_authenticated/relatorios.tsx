@@ -17,9 +17,9 @@ export const Route = createFileRoute("/_authenticated/relatorios")({
 });
 
 function Relatorios() {
-  const { data: days = [], isLoading } = useQuery(daysQuery);
-  const { data: platforms = [] } = useQuery(platformsQuery);
-  const { data: expenses = [] } = useQuery(monthlyQuery);
+  const { data: days = [], isLoading, isError: daysError } = useQuery(daysQuery);
+  const { data: platforms = [], isError: platformsError } = useQuery(platformsQuery);
+  const { data: expenses = [], isError: expensesError } = useQuery(monthlyQuery);
   const [month, setMonth] = useState(today().slice(0, 7));
   const monthDays = useMemo(() => days.filter((d) => monthKey(d.date) === month).slice().sort((a, b) => a.date.localeCompare(b.date)), [days, month]);
   const totals = sumDays(monthDays);
@@ -66,7 +66,7 @@ function Relatorios() {
     <PageHeader title="Relatórios" subtitle="Desempenho e médias" right={<Button size="sm" onClick={exportExcel} disabled={isLoading}><Download className="mr-1 h-4 w-4" />Excel</Button>} />
     <div className="space-y-4 px-4 pb-6">
       <Card><label className="block text-xs text-muted-foreground">Mês do relatório<Input className="mt-1 h-11" type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></label></Card>
-      {isLoading ? <Empty>Carregando relatórios…</Empty> : <>
+      {isLoading ? <Empty>Carregando relatórios…</Empty> : daysError || platformsError || expensesError ? <Card><p className="font-semibold text-destructive">Não foi possível carregar os relatórios.</p><p className="mt-1 text-sm text-muted-foreground">Verifique a conexão e tente recarregar a página antes de exportar.</p></Card> : <>
         <Card className="space-y-3">
           <div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /><h2 className="font-semibold">Resumo de {month}</h2></div>
           <div className="grid grid-cols-2 gap-4">

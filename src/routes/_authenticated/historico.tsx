@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { daysQuery, deleteDay, useInvalidate } from "@/lib/data";
+import { daysQuery, deleteDay, settingsQuery, useInvalidate } from "@/lib/data";
 import { sumDays, brl, fmtDate, fmtHours, today, weekStartOf, monthKey, type Day } from "@/lib/calc";
 
 export const Route = createFileRoute("/_authenticated/historico")({
@@ -18,6 +18,7 @@ export const Route = createFileRoute("/_authenticated/historico")({
 
 function Historico() {
   const { data = [], isLoading, isError } = useQuery(daysQuery);
+  const { data: settings } = useQuery(settingsQuery);
   const invalidate = useInvalidate();
   const [period, setPeriod] = useState("month");
   const [anchor, setAnchor] = useState(today());
@@ -32,7 +33,7 @@ function Historico() {
     let rows = data;
     if (period === "day") rows = rows.filter((d) => d.date === anchor);
     if (period === "week") {
-      const start = weekStartOf(anchor, 1);
+      const start = weekStartOf(anchor, settings?.week_start ?? 1);
       const end = new Date(start + "T12:00:00");
       end.setDate(end.getDate() + 7);
       const endKey = end.toISOString().slice(0, 10);
@@ -42,7 +43,7 @@ function Historico() {
     const q = search.trim().toLocaleLowerCase("pt-BR");
     if (q) rows = rows.filter((d) => d.date.includes(q) || (d.notes || "").toLocaleLowerCase("pt-BR").includes(q));
     return rows;
-  }, [data, period, anchor, search]);
+  }, [data, period, anchor, search, settings?.week_start]);
   const totals = sumDays(filtered);
 
   return <div>

@@ -15,7 +15,8 @@ function Hoje() {
   return (
     <div>
       <PageHeader subtitle="Hoje" title="Resumo do dia" />
-      <div className="space-y-3 px-4">\n        {isError && <Card><p className="text-sm text-destructive">Não foi possível carregar os lançamentos. Verifique sua conexão e tente novamente.</p></Card>}
+      <div className="space-y-3 px-4">
+        {isError && <Card><p className="text-sm text-destructive">Não foi possível carregar os lançamentos. Verifique sua conexão e tente novamente.</p></Card>}
         <Card><Stat big label="Lucro operacional" value={isLoading || isError ? "..." : brl(t.lucroOp)} tone="accent" /></Card>
         <Card className="grid grid-cols-2 gap-4">
           <Stat label="Ganhos" value={isLoading || isError ? "..." : brl(t.ganhos)} />

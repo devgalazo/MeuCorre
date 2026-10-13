@@ -10,7 +10,8 @@ export const Route = createFileRoute("/_authenticated/hoje")({
 });
 
 function Hoje() {
-  const { data = [], isLoading, isError } = useQuery(daysQuery);\n  const { data: settings } = useQuery(settingsQuery);
+  const { data = [], isLoading, isError } = useQuery(daysQuery);
+  const { data: settings } = useQuery(settingsQuery);
   const t = sumDays(data.filter((d) => d.date === today()));
   return (
     <div>

@@ -66,9 +66,9 @@ export function fmtHours(h: number) {
 export function isValidHoursInput(value: string): boolean {
   const trimmed = value.trim().toLowerCase();
   if (!trimmed) return true;
-  const clock = trimmed.match(/^(\\d+)\\s*[h:]\\s*(\\d{0,2})\\s*(m|min)?$/);
+  const clock = trimmed.match(/^(\d+)\s*[h:]\s*(\d{0,2})\s*(m|min)?$/);
   if (clock) return Number(clock[2] || 0) < 60;
-  return /^\\d+(?:[.,]\\d+)?$/.test(trimmed);
+  return /^\d+(?:[.,]\d+)?$/.test(trimmed);
 }
 
 /** Aceita "7h30", "7:30", "7,5" ou "7.5" */

@@ -18,7 +18,9 @@ export const Route = createFileRoute("/_authenticated/lancar")({
 
 const emptyPlatform = (platform_id: string): DayPlatform => ({ platform_id, total: 0, cash: 0, card: 0, tips: 0, trips: 0, hours: 0 });
 const money = (v: number) => v ? String(v).replace(".", ",") : "";
-type FuelForm = { id?: string; amount: string; liters: string };\n\nconst initialDay = (date: string, platformIds: string[]) => ({
+type FuelForm = { id?: string; amount: string; liters: string };
+
+const initialDay = (date: string, platformIds: string[]) => ({
   id: undefined as string | undefined, date, km: "", maintenance: "", equipment: "", pass: "", food: "", other: "", notes: "",
   day_platforms: platformIds.map(emptyPlatform), fuelings: [{ amount: "", liters: "" }] as FuelForm[],
 });

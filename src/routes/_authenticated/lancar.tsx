@@ -44,7 +44,7 @@ function Lancar() {
         id: found.id, date: found.date, km: String(found.km || ""), maintenance: String(found.maintenance || ""),
         equipment: String(found.equipment || ""), pass: String(found.pass || ""), food: String(found.food || ""),
         other: String(found.other || ""), notes: found.notes || "",
-        day_platforms: active.map((p) => {
+        day_platforms: platforms.filter((p) => p.active || found.day_platforms.some((x) => x.platform_id === p.id)).map((p) => {
           const existing = found.day_platforms.find((x) => x.platform_id === p.id);
           return existing ? { ...existing } : emptyPlatform(p.id);
         }),
@@ -88,7 +88,7 @@ function Lancar() {
 
   const totalGanhos = useMemo(() => form.day_platforms.reduce((sum, p) => sum + appTotal(p), 0), [form.day_platforms]);
   const totalFuel = useMemo(() => form.fuelings.reduce((sum, f) => sum + parseMoney(f.amount), 0), [form.fuelings]);
-  const activePlatforms = platforms.filter((p) => p.active);
+  const activePlatforms = platforms.filter((p) => p.active || form.day_platforms.some((dp) => dp.platform_id === p.id));
 
   if (loadingDays || loadingPlatforms || !ready) return <div className="p-6 text-sm text-muted-foreground">Carregando seus dados…</div>;
 

@@ -11,6 +11,7 @@ import { daysQuery, platformsQuery, saveDay, useInvalidate } from "@/lib/data";
 import { appTotal, parseHours, parseMoney, today, brl, type Day, type DayPlatform, type Fueling } from "@/lib/calc";
 
 export const Route = createFileRoute("/_authenticated/lancar")({
+  validateSearch: (search: Record<string, unknown>) => ({ id: typeof search.id === "string" ? search.id : undefined, date: typeof search.date === "string" ? search.date : undefined }),
   head: () => ({ meta: [{ title: "Lançar dia — Corre Moto" }] }),
   component: Lancar,
 });

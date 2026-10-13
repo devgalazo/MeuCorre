@@ -29,6 +29,7 @@ function Lancar() {
   const invalidate = useInvalidate();
   const [form, setForm] = useState(() => initialDay(today(), []));
   const [ready, setReady] = useState(false);
+  const [rawHours, setRawHours] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (loadingDays || loadingPlatforms || ready) return;
@@ -50,13 +51,14 @@ function Lancar() {
       });
     } else {
       setForm(initialDay(requestedDate, active.map((p) => p.id)));
+      setRawHours({});
     }
     setReady(true);
   }, [days, platforms, loadingDays, loadingPlatforms, ready]);
 
   const update = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
   const updatePlatform = (id: string, key: keyof DayPlatform, value: string) => setForm((f) => ({
-    ...f, day_platforms: f.day_platforms.map((p) => p.platform_id !== id ? p : { ...p, [key]: key === "hours" ? parseHours(value) : Number(value.replace(",", ".")) || 0 }),
+    ...f, day_platforms: f.day_platforms.map((p) => p.platform_id !== id ? p : { ...p, [key]: key === "hours" ? parseHours(value) : key === "trips" ? Number(value) || 0 : parseMoney(value) }),
   }));
   const updateFuel = (index: number, key: "amount" | "liters", value: string) => setForm((f) => ({
     ...f, fuelings: f.fuelings.map((fuel, i) => i !== index ? fuel : { ...fuel, [key]: value }),
@@ -116,7 +118,7 @@ function Lancar() {
                 <NumField label="Gorjetas (R$)" value={row.tips ? money(row.tips) : ""} onChange={(v) => updatePlatform(platform.id, "tips", v)} />
                 <NumField label="Nº de corridas/pedidos" value={row.trips ? String(row.trips) : ""} onChange={(v) => updatePlatform(platform.id, "trips", v)} mode="numeric" />
               </div>
-              <NumField label="Horas online (ex.: 7h30, 7:30 ou 7,5)" value={row.hours ? String(row.hours).replace(".", ",") : ""} onChange={(v) => updatePlatform(platform.id, "hours", v)} mode="text" />
+              <NumField label="Horas online (ex.: 7h30, 7:30 ou 7,5)" value={rawHours[platform.id] ?? (row.hours ? String(row.hours).replace(".", ",") : "")} onChange={(v) => { setRawHours((h) => ({ ...h, [platform.id]: v })); updatePlatform(platform.id, "hours", v); }} mode="text" />
               <p className="text-right text-sm text-muted-foreground">Total considerado: <strong className="text-foreground">{brl(appTotal(row))}</strong></p>
             </div>;
           })}

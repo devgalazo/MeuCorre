@@ -90,7 +90,8 @@ function Lancar() {
   const totalFuel = useMemo(() => form.fuelings.reduce((sum, f) => sum + parseMoney(f.amount), 0), [form.fuelings]);
   const activePlatforms = platforms.filter((p) => p.active || form.day_platforms.some((dp) => dp.platform_id === p.id));
 
-  if (loadingDays || loadingPlatforms || !ready) return <div className="p-6 text-sm text-muted-foreground">Carregando seus dados…</div>;\n  if (daysError || platformsError) return <div className="space-y-2 p-6 text-sm"><p className="font-semibold text-destructive">Não foi possível carregar os dados para o lançamento.</p><p className="text-muted-foreground">Verifique a conexão e tente novamente. O formulário não foi salvo.</p></div>;
+  if (loadingDays || loadingPlatforms || !ready) return <div className="p-6 text-sm text-muted-foreground">Carregando seus dados…</div>;
+  if (daysError || platformsError) return <div className="space-y-2 p-6 text-sm"><p className="font-semibold text-destructive">Não foi possível carregar os dados para o lançamento.</p><p className="text-muted-foreground">Verifique a conexão e tente novamente. O formulário não foi salvo.</p></div>;
 
   return (
     <div>

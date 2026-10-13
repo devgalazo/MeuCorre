@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader, Card, NumField } from "@/components/app/bits";
 import { daysQuery, platformsQuery, saveDay, useInvalidate } from "@/lib/data";
-import { appTotal, parseHours, parseMoney, today, brl, type Day, type DayPlatform, type Fueling } from "@/lib/calc";
+import { appTotal, isValidHoursInput, parseHours, parseMoney, today, brl, type Day, type DayPlatform, type Fueling } from "@/lib/calc";
 
 export const Route = createFileRoute("/_authenticated/lancar")({
   validateSearch: (search: Record<string, unknown>) => ({ id: typeof search.id === "string" ? search.id : undefined, date: typeof search.date === "string" ? search.date : undefined }),
@@ -19,14 +19,6 @@ export const Route = createFileRoute("/_authenticated/lancar")({
 const emptyPlatform = (platform_id: string): DayPlatform => ({ platform_id, total: 0, cash: 0, card: 0, tips: 0, trips: 0, hours: 0 });
 const money = (v: number) => v ? String(v).replace(".", ",") : "";
 type FuelForm = { id?: string; amount: string; liters: string };
-
-const validHoursInput = (value: string) => {
-  const trimmed = value.trim().toLowerCase();
-  if (!trimmed) return true;
-  const clock = trimmed.match(/^(\\d+)\\s*[h:]\\s*(\\d{0,2})\\s*(m|min)?$/);
-  if (clock) return Number(clock[2] || 0) < 60;
-  return /^\\d+(?:[.,]\\d+)?$/.test(trimmed);
-};
 
 const initialDay = (date: string, platformIds: string[]) => ({
   id: undefined as string | undefined, date, km: "", maintenance: "", equipment: "", pass: "", food: "", other: "", notes: "",
@@ -41,6 +33,7 @@ function Lancar() {
   const [form, setForm] = useState(() => initialDay(today(), []));
   const [ready, setReady] = useState(false);
   const [rawHours, setRawHours] = useState<Record<string, string>>({});
+  const [rawAmounts, setRawAmounts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (loadingDays || loadingPlatforms || ready) return;
@@ -49,6 +42,8 @@ function Lancar() {
     const requestedDate = params.get("date") || today();
     const found = days.find((d) => d.id === requestedId || d.date === requestedDate);
     const active = platforms.filter((p) => p.active);
+    setRawHours({});
+    setRawAmounts({});
     if (found) {
       setForm({
         id: found.id, date: found.date, km: String(found.km || ""), maintenance: String(found.maintenance || ""),
@@ -71,6 +66,10 @@ function Lancar() {
   const updatePlatform = (id: string, key: keyof DayPlatform, value: string) => setForm((f) => ({
     ...f, day_platforms: f.day_platforms.map((p) => p.platform_id !== id ? p : { ...p, [key]: key === "hours" ? parseHours(value) : key === "trips" ? Number(value) || 0 : parseMoney(value) }),
   }));
+  const updatePlatformMoney = (id: string, key: "total" | "cash" | "card" | "tips", value: string) => {
+    setRawAmounts((values) => ({ ...values, [`${id}.${key}`]: value }));
+    updatePlatform(id, key, value);
+  };
   const updateFuel = (index: number, key: "amount" | "liters", value: string) => setForm((f) => ({
     ...f, fuelings: f.fuelings.map((fuel, i) => i !== index ? fuel : { ...fuel, [key]: value }),
   }));
@@ -78,7 +77,7 @@ function Lancar() {
   const mutation = useMutation({
     mutationFn: async () => {
       if (!form.date) throw new Error("Escolha a data do lançamento.");
-      if (Object.values(rawHours).some((value) => !validHoursInput(value))) {
+      if (Object.values(rawHours).some((value) => !isValidHoursInput(value))) {
         throw new Error("Confira as horas online. Use formatos como 7h30, 7:30 ou 7,5.");
       }
       const amounts = [form.km, form.maintenance, form.equipment, form.pass, form.food, form.other, ...form.fuelings.flatMap((f) => [f.amount, f.liters])];
@@ -131,11 +130,11 @@ function Lancar() {
             const row = form.day_platforms.find((p) => p.platform_id === platform.id) ?? emptyPlatform(platform.id);
             return <div key={platform.id} className="space-y-3 rounded-xl border p-3">
               <h3 className="font-semibold">{platform.name}</h3>
-              <NumField label="Faturamento total (R$)" value={row.total ? money(row.total) : ""} onChange={(v) => updatePlatform(platform.id, "total", v)} prefix="R$" />
+              <NumField label="Faturamento total (R$)" value={rawAmounts[`${platform.id}.total`] ?? (row.total ? money(row.total) : "")} onChange={(v) => updatePlatformMoney(platform.id, "total", v)} prefix="R$" />
               <div className="grid grid-cols-2 gap-3">
-                <NumField label="Dinheiro (R$)" value={row.cash ? money(row.cash) : ""} onChange={(v) => updatePlatform(platform.id, "cash", v)} />
-                <NumField label="Cartão (R$)" value={row.card ? money(row.card) : ""} onChange={(v) => updatePlatform(platform.id, "card", v)} />
-                <NumField label="Gorjetas (R$)" value={row.tips ? money(row.tips) : ""} onChange={(v) => updatePlatform(platform.id, "tips", v)} />
+                <NumField label="Dinheiro (R$)" value={rawAmounts[`${platform.id}.cash`] ?? (row.cash ? money(row.cash) : "")} onChange={(v) => updatePlatformMoney(platform.id, "cash", v)} />
+                <NumField label="Cartão (R$)" value={rawAmounts[`${platform.id}.card`] ?? (row.card ? money(row.card) : "")} onChange={(v) => updatePlatformMoney(platform.id, "card", v)} />
+                <NumField label="Gorjetas (R$)" value={rawAmounts[`${platform.id}.tips`] ?? (row.tips ? money(row.tips) : "")} onChange={(v) => updatePlatformMoney(platform.id, "tips", v)} />
                 <NumField label="Nº de corridas/pedidos" value={row.trips ? String(row.trips) : ""} onChange={(v) => updatePlatform(platform.id, "trips", v)} mode="numeric" />
               </div>
               <NumField label="Horas online (ex.: 7h30, 7:30 ou 7,5)" value={rawHours[platform.id] ?? (row.hours ? String(row.hours).replace(".", ",") : "")} onChange={(v) => { setRawHours((h) => ({ ...h, [platform.id]: v })); updatePlatform(platform.id, "hours", v); }} mode="text" />

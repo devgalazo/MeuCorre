@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appTotal, parseHours, parseMoney, sumDays, weekStartOf, type Day } from "@/lib/calc";
+import { appTotal, isValidHoursInput, parseHours, parseMoney, sumDays, weekStartOf, type Day } from "@/lib/calc";
 
 describe("parseHours", () => {
   it.each([
@@ -15,6 +15,16 @@ describe("parseHours", () => {
 
   it("rejects impossible minute values", () => {
     expect(parseHours("7:75")).toBe(0);
+  });
+});
+
+describe("isValidHoursInput", () => {
+  it.each(["", "7h30", "7:30", "7,5", "7.5", "8h"])("accepts %s", (input) => {
+    expect(isValidHoursInput(input)).toBe(true);
+  });
+
+  it.each(["7:75", "abc", "7,,5"])("rejects %s", (input) => {
+    expect(isValidHoursInput(input)).toBe(false);
   });
 });
 

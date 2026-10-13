@@ -60,6 +60,9 @@ function Ajustes() {
     mutationFn: async () => {
       const name = newPlatform.trim();
       if (!name) throw new Error("Digite o nome do aplicativo.");
+      if (platforms.some((p) => p.name.trim().toLocaleLowerCase("pt-BR") === name.toLocaleLowerCase("pt-BR"))) {
+        throw new Error("Esse aplicativo já está cadastrado.");
+      }
       const user_id = await uid();
       const { error } = await supabase.from("platforms").insert({ user_id, name, kind: "delivery", active: true, sort: platforms.length + 1 });
       if (error) throw error;

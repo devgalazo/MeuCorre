@@ -173,7 +173,7 @@ function Relatorios() {
     <div className="space-y-4 px-4 pb-6">
       <Card className="space-y-3">
         <div className="grid grid-cols-3 gap-2">
-          <Button type="button" variant={period === "day" ? "default" : "outline"} onClick={() => setPeriod("day")}>Diário</Button>
+          <Button type="button" variant={period === "day" ? "default" : "outline"} onClick={() => setPeriod("day")}>Dia</Button>
           <Button type="button" variant={period === "week" ? "default" : "outline"} onClick={() => setPeriod("week")}>Semanal</Button>
           <Button type="button" variant={period === "month" ? "default" : "outline"} onClick={() => setPeriod("month")}>Mensal</Button>
         </div>

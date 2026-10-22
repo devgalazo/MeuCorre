@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader, Card, NumField } from "@/components/app/bits";
 import { daysQuery, platformsQuery, saveDay, useInvalidate } from "@/lib/data";
-import { appTotal, isValidHoursInput, parseHours, parseMoney, today, brl, type Day, type DayPlatform, type Fueling } from "@/lib/calc";
+import { appTotal, fmtHours, isValidHoursInput, parseHours, parseMoney, today, brl, type Day, type DayPlatform, type Fueling } from "@/lib/calc";
 
 export const Route = createFileRoute("/_authenticated/lancar")({
   validateSearch: (search: Record<string, unknown>) => ({ id: typeof search.id === "string" ? search.id : undefined, date: typeof search.date === "string" ? search.date : undefined }),
@@ -51,7 +51,8 @@ function Lancar() {
         other: String(found.other || ""), notes: found.notes || "",
         day_platforms: platforms.filter((p) => p.active || found.day_platforms.some((x) => x.platform_id === p.id)).map((p) => {
           const existing = found.day_platforms.find((x) => x.platform_id === p.id);
-          return existing ? { ...existing } : emptyPlatform(p.id);
+          // Normalize old floating-point values to whole minutes when opening an edit.
+          return existing ? { ...existing, hours: Math.round(Number(existing.hours || 0) * 60) / 60 } : emptyPlatform(p.id);
         }),
         fuelings: found.fuelings.length ? found.fuelings.map((f) => ({ id: f.id, amount: money(f.amount), liters: f.liters == null ? "" : String(f.liters) })) : [{ amount: "", liters: "" }],
       });
@@ -78,7 +79,7 @@ function Lancar() {
     mutationFn: async () => {
       if (!form.date) throw new Error("Escolha a data do lançamento.");
       if (Object.values(rawHours).some((value) => !isValidHoursInput(value))) {
-        throw new Error("Confira as horas online. Use formatos como 7h30, 7:30 ou 7,5.");
+        throw new Error("Formato de horas inválido. Use 7h30, 7:30, 1,0 ou 1,5 (até duas casas decimais).");
       }
       const amounts = [form.km, form.maintenance, form.equipment, form.pass, form.food, form.other, ...form.fuelings.flatMap((f) => [f.amount, f.liters])];
       if (amounts.some((value) => parseMoney(value) < 0)) throw new Error("Valores e quilometragem não podem ser negativos.");
@@ -137,7 +138,7 @@ function Lancar() {
                 <NumField label="Gorjetas (R$)" value={rawAmounts[`${platform.id}.tips`] ?? (row.tips ? money(row.tips) : "")} onChange={(v) => updatePlatformMoney(platform.id, "tips", v)} />
                 <NumField label="Nº de corridas/pedidos" value={row.trips ? String(row.trips) : ""} onChange={(v) => updatePlatform(platform.id, "trips", v)} mode="numeric" />
               </div>
-              <NumField label="Horas online (ex.: 7h30, 7:30 ou 7,5)" value={rawHours[platform.id] ?? (row.hours ? String(row.hours).replace(".", ",") : "")} onChange={(v) => { setRawHours((h) => ({ ...h, [platform.id]: v })); updatePlatform(platform.id, "hours", v); }} mode="text" />
+              <NumField label="Horas online (ex.: 7h30, 7:30, 1,0 ou 1,5)" value={rawHours[platform.id] ?? (row.hours ? fmtHours(row.hours) : "")} onChange={(v) => { setRawHours((h) => ({ ...h, [platform.id]: v })); updatePlatform(platform.id, "hours", v); }} mode="text" />
               <p className="text-right text-sm text-muted-foreground">Total considerado: <strong className="text-foreground">{brl(appTotal(row))}</strong></p>
             </div>;
           })}

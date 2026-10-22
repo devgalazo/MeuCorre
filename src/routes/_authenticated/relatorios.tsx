@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, TrendingUp, BarChart3 } from "lucide-react";
+import { Download, TrendingUp, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from "recharts";
 import { PageHeader, Card, Stat, Empty } from "@/components/app/bits";
@@ -23,6 +23,11 @@ function Relatorios() {
   const [period, setPeriod] = useState<"week" | "month">("month");
   const [month, setMonth] = useState(today().slice(0, 7));
   const [weekAnchor, setWeekAnchor] = useState(today());
+  const shiftWeek = (offset: number) => {
+    const date = new Date(`${weekAnchor}T12:00:00`);
+    date.setDate(date.getDate() + offset * 7);
+    setWeekAnchor(date.toISOString().slice(0, 10));
+  };
   const weekStart = weekStartOf(weekAnchor, settings?.week_start ?? 1);
   const weekEndDate = new Date(weekStart + "T12:00:00");
   weekEndDate.setDate(weekEndDate.getDate() + 7);
@@ -170,7 +175,7 @@ function Relatorios() {
         </div>
         {period === "month"
           ? <label className="block text-xs text-muted-foreground">Mês do relatório<Input className="mt-1 h-11" type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></label>
-          : <label className="block text-xs text-muted-foreground">Escolha uma data da semana<Input className="mt-1 h-11" type="date" value={weekAnchor} onChange={(e) => setWeekAnchor(e.target.value)} /><span className="mt-1 block">Semana: {fmtDate(weekStart, "dd/MM/yyyy")} a {fmtDate(weekLast, "dd/MM/yyyy")}</span></label>}
+          : <div className="space-y-2"><label className="block text-xs text-muted-foreground">Escolher semana (selecione uma data dentro dela)<Input className="mt-1 h-11" type="date" value={weekAnchor} onChange={(e) => setWeekAnchor(e.target.value)} /></label><div className="flex items-center justify-between gap-2"><Button type="button" variant="outline" size="sm" onClick={() => shiftWeek(-1)} aria-label="Semana anterior"><ChevronLeft className="mr-1 h-4 w-4" />Anterior</Button><span className="text-center text-sm font-medium"> {fmtDate(weekStart, "dd/MM/yyyy")} a {fmtDate(weekLast, "dd/MM/yyyy")}</span><Button type="button" variant="outline" size="sm" onClick={() => shiftWeek(1)} aria-label="Próxima semana">Próxima<ChevronRight className="ml-1 h-4 w-4" /></Button></div></div>}
       </Card>
       {isLoading ? <Empty>Carregando relatórios…</Empty> : daysError || platformsError || expensesError ? <Card><p className="font-semibold text-destructive">Não foi possível carregar os relatórios.</p><p className="mt-1 text-sm text-muted-foreground">Verifique a conexão e tente recarregar a página antes de exportar.</p></Card> : <>
         <Card className="space-y-3">
@@ -179,7 +184,7 @@ function Relatorios() {
             <Stat label="Faturamento" value={brl(totals.ganhos)} />
             <Stat label="Lucro operacional" value={brl(totals.lucroOp)} tone="accent" />
             <Stat label="Sobra antes dos fixos" value={brl(totals.sobra)} />
-            <Stat label="Gastos mensais fixos" value={brl(fixedExpenses)} tone="neg" />
+            {period === "month" && <Stat label="Gastos fixos do mês" value={brl(fixedExpenses)} tone="neg" />}
             <Stat label="Sobra final estimada" value={brl(finalBalance)} tone={finalBalance < 0 ? "neg" : "pos"} />
             <Stat label="R$/hora bruto" value={brl(totals.brutoPorHora)} />
             <Stat label="R$/hora operacional" value={brl(totals.porHora)} />
@@ -193,7 +198,7 @@ function Relatorios() {
         </Card>
         <Card className="space-y-3">
           <div className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-primary" /><h2 className="font-semibold">Faturamento por aplicativo</h2></div>
-          {byPlatform.length === 0 ? <Empty>Sem faturamento lançado neste mês.</Empty> : <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={byPlatform} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" /><XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-20} textAnchor="end" height={55} /><YAxis tick={{ fontSize: 10 }} /><Tooltip formatter={(v) => brl(Number(v))} /><Bar dataKey="ganhos" name="Faturamento" fill="var(--color-primary)" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer></div>}
+          {byPlatform.length === 0 ? <Empty>Sem faturamento lançado neste período.</Empty> : <div className="h-64 w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={byPlatform} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" /><XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-20} textAnchor="end" height={55} /><YAxis tick={{ fontSize: 10 }} /><Tooltip formatter={(v) => brl(Number(v))} /><Bar dataKey="ganhos" name="Faturamento" fill="var(--color-primary)" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer></div>}
         </Card>
         <Card className="space-y-3">
           <h2 className="font-semibold">Evolução diária</h2>
@@ -201,7 +206,7 @@ function Relatorios() {
         </Card>
         <Card className="space-y-3">
           <div className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-primary" /><h2 className="font-semibold">Lucro e despesas por categoria</h2></div>
-          <p className="text-xs text-muted-foreground">Distribuição do faturamento do mês entre os gastos registrados e o lucro líquido estimado. Os gastos fixos vêm de Ajustes.</p>
+          <p className="text-xs text-muted-foreground">{period === "month" ? "Distribuição do faturamento do mês entre os gastos registrados e o lucro líquido estimado. Os gastos fixos vêm de Ajustes." : "Distribuição do faturamento da semana entre as despesas registradas nos dias selecionados e a sobra estimada. Gastos fixos mensais não são incluídos no relatório semanal."}</p>
           {profitExpenseData.length === 0 ? <Empty>Registre faturamentos ou despesas para visualizar a distribuição.</Empty> : <>
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -221,7 +226,7 @@ function Relatorios() {
                 <Stat label={finalBalance < 0 ? "Déficit estimado" : "Lucro líquido estimado"} value={brl(finalBalance)} tone={finalBalance < 0 ? "neg" : "pos"} />
               </div>
             </div>
-            {finalBalance < 0 && <p className="text-xs text-muted-foreground">As despesas superaram o faturamento neste mês; por isso o déficit aparece no resumo, e o gráfico detalha a composição dos gastos.</p>}
+            {finalBalance < 0 && <p className="text-xs text-muted-foreground">{period === "month" ? "As despesas superaram o faturamento neste mês; por isso o déficit aparece no resumo, e o gráfico detalha a composição dos gastos." : "As despesas dos dias selecionados superaram o faturamento da semana; o gráfico detalha a composição dos gastos."}</p>}
           </>}
         </Card>
         <Card className="space-y-3">

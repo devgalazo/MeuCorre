@@ -109,18 +109,14 @@ export async function saveDay(input: DayInput) {
 
   // Update/insert desired child rows first. Only remove obsolete rows after all
   // writes succeed, so a failed request cannot erase the previous details.
-  const { data: existingPlatforms, error: existingPlatformsError } = await supabase
-    .from("day_platforms")
-    .select("id")
-    .eq("user_id", user_id)
-    .eq("day_id", dayId);
+  const [
+    { data: existingPlatforms, error: existingPlatformsError },
+    { data: existingFuelings, error: existingFuelingsError },
+  ] = await Promise.all([
+    supabase.from("day_platforms").select("id").eq("user_id", user_id).eq("day_id", dayId),
+    supabase.from("fuelings").select("id").eq("user_id", user_id).eq("day_id", dayId),
+  ]);
   if (existingPlatformsError) throw existingPlatformsError;
-
-  const { data: existingFuelings, error: existingFuelingsError } = await supabase
-    .from("fuelings")
-    .select("id")
-    .eq("user_id", user_id)
-    .eq("day_id", dayId);
   if (existingFuelingsError) throw existingFuelingsError;
 
   const keptPlatformIds = new Set<string>();

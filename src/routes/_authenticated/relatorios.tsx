@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Download, TrendingUp, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Legend } from "recharts";
 import { PageHeader, Card, Stat, Empty } from "@/components/app/bits";
 import { Button } from "@/components/ui/button";
@@ -35,7 +34,7 @@ function Relatorios() {
     ? days.filter((d) => monthKey(d.date) === month)
     : days.filter((d) => d.date >= weekStart && d.date < weekEnd)
   ).slice().sort((a, b) => a.date.localeCompare(b.date)), [days, month, period, weekStart, weekEnd]);
-  const totals = sumDays(monthDays);
+  const totals = useMemo(() => sumDays(monthDays), [monthDays]);
   // Não descontar o mês inteiro de despesas fixas em um relatório semanal.
   const fixedExpenses = period === "month"
     ? expenses.filter((e) => e.month.slice(0, 7) === month).reduce((s, e) => s + Number(e.amount || 0), 0)
@@ -69,17 +68,35 @@ function Relatorios() {
     ...(finalBalance > 0 ? [{ name: "Lucro líquido estimado", value: finalBalance }] : []),
   ];
   const pieColors = ["#2563eb", "#f59e0b", "#8b5cf6", "#06b6d4", "#f97316", "#64748b", "#db2777", "#16a34a"];
-  const byPlatform = platforms.map((p) => ({
-    name: p.name,
-    ganhos: monthDays.reduce((s, d) => s + d.day_platforms.filter((dp) => dp.platform_id === p.id).reduce((a, dp) => a + (Number(dp.total) > 0 ? Number(dp.total) : Number(dp.cash || 0) + Number(dp.card || 0) + Number(dp.tips || 0)), 0), 0),
-  })).filter((p) => p.ganhos > 0).sort((a, b) => b.ganhos - a.ganhos);
-  const daily = monthDays.map((d) => {
-    const t = sumDays([d]);
-    return { date: fmtDate(d.date, "dd/MM"), faturamento: Number(t.ganhos.toFixed(2)), sobra: Number(t.sobra.toFixed(2)), lucro: Number(t.lucroOp.toFixed(2)) };
-  });
+  const byPlatform = useMemo(() => {
+    const earningsByPlatform = new Map<string, number>();
+    for (const day of monthDays) {
+      for (const entry of day.day_platforms) {
+        const earnings = Number(entry.total) > 0
+          ? Number(entry.total)
+          : Number(entry.cash || 0) + Number(entry.card || 0) + Number(entry.tips || 0);
+        earningsByPlatform.set(entry.platform_id, (earningsByPlatform.get(entry.platform_id) ?? 0) + earnings);
+      }
+    }
+    return platforms
+      .map((platform) => ({ name: platform.name, ganhos: earningsByPlatform.get(platform.id) ?? 0 }))
+      .filter((platform) => platform.ganhos > 0)
+      .sort((a, b) => b.ganhos - a.ganhos);
+  }, [platforms, monthDays]);
+  const daily = useMemo(() => monthDays.map((day) => {
+    const dayTotals = sumDays([day]);
+    return {
+      date: fmtDate(day.date, "dd/MM"),
+      faturamento: Number(dayTotals.ganhos.toFixed(2)),
+      sobra: Number(dayTotals.sobra.toFixed(2)),
+      lucro: Number(dayTotals.lucroOp.toFixed(2)),
+    };
+  }), [monthDays]);
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
     try {
+      // XLSX pesa bastante; só baixa esse módulo quando o usuário exporta.
+      const XLSX = await import("xlsx");
       const dayRows = monthDays.map((d) => {
         const t = sumDays([d]);
         const row: Record<string, string | number> = {

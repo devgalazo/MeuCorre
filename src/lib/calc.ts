@@ -65,8 +65,11 @@ export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency",
 export const num = (v: number, d = 0) => v.toLocaleString("pt-BR", { maximumFractionDigits: d, minimumFractionDigits: d });
 
 export function fmtHours(h: number) {
-  const hh = Math.floor(h); const mm = Math.round((h - hh) * 60);
-  return `${hh}h${mm ? String(mm).padStart(2, "0") : ""}`;
+  // Convert total minutes first so rounded values never display invalid strings such as "1h60".
+  const totalMinutes = Math.max(0, Math.round((Number(h) || 0) * 60));
+  const hh = Math.floor(totalMinutes / 60);
+  const mm = totalMinutes % 60;
+  return `${hh}h${String(mm).padStart(2, "0")}`;
 }
 
 /** Aceita apenas horas:minutos ou horas decimais com até duas casas. */

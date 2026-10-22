@@ -20,7 +20,8 @@ function Relatorios() {
   const { data: platforms = [], isError: platformsError } = useQuery(platformsQuery);
   const { data: expenses = [], isError: expensesError } = useQuery(monthlyQuery);
   const { data: settings } = useQuery(settingsQuery);
-  const [period, setPeriod] = useState<"week" | "month">("month");
+  const [period, setPeriod] = useState<"day" | "week" | "month">("month");
+  const [selectedDate, setSelectedDate] = useState(today());
   const [month, setMonth] = useState(today().slice(0, 7));
   const [weekAnchor, setWeekAnchor] = useState(today());
   const shiftWeek = (offset: number) => {
@@ -37,14 +38,16 @@ function Relatorios() {
   const weekLast = weekLastDate.toISOString().slice(0, 10);
   const monthDays = useMemo(() => (period === "month"
     ? days.filter((d) => monthKey(d.date) === month)
-    : days.filter((d) => d.date >= weekStart && d.date < weekEnd)
-  ).slice().sort((a, b) => a.date.localeCompare(b.date)), [days, month, period, weekStart, weekEnd]);
+    : period === "week"
+      ? days.filter((d) => d.date >= weekStart && d.date < weekEnd)
+      : days.filter((d) => d.date === selectedDate)
+  ).slice().sort((a, b) => a.date.localeCompare(b.date)), [days, month, period, selectedDate, weekStart, weekEnd]);
   const totals = useMemo(() => sumDays(monthDays), [monthDays]);
   // Não descontar o mês inteiro de despesas fixas em um relatório semanal.
   const fixedExpenses = period === "month"
     ? expenses.filter((e) => e.month.slice(0, 7) === month).reduce((s, e) => s + Number(e.amount || 0), 0)
     : 0;
-  const reportTitle = period === "month" ? month : `Semana de ${fmtDate(weekStart, "dd/MM")} a ${fmtDate(weekLast, "dd/MM")}`;
+  const reportTitle = period === "month" ? month : period === "week" ? `Semana de ${fmtDate(weekStart, "dd/MM")} a ${fmtDate(weekLast, "dd/MM")}` : fmtDate(selectedDate, "dd/MM/yyyy");
   const finalBalance = totals.sobra - fixedExpenses;
   const totalExpenses = totals.despesas + fixedExpenses;
   const dailyExpenseItems = monthDays.flatMap((d) => [
@@ -158,7 +161,7 @@ function Relatorios() {
       XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(platformDetailRows), "Detalhe por app");
       XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(fuelingRows), "Abastecimentos");
       XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(expenseRows), "Despesas detalhadas");
-      XLSX.writeFile(workbook, "corre-moto-" + (period === "month" ? month : "semana-" + weekStart) + ".xlsx");
+      XLSX.writeFile(workbook, "corre-moto-" + (period === "month" ? month : period === "week" ? "semana-" + weekStart : "dia-" + selectedDate) + ".xlsx");
       toast.success("Planilha exportada.");
     } catch {
       toast.error("Não foi possível gerar o Excel.");
@@ -169,13 +172,16 @@ function Relatorios() {
     <PageHeader title="Relatórios" subtitle="Desempenho e médias" right={<Button size="sm" onClick={exportExcel} disabled={isLoading}><Download className="mr-1 h-4 w-4" />Excel</Button>} />
     <div className="space-y-4 px-4 pb-6">
       <Card className="space-y-3">
-        <div className="grid grid-cols-2 gap-2">
-          <Button type="button" variant={period === "week" ? "default" : "outline"} onClick={() => setPeriod("week")}>Relatório semanal</Button>
-          <Button type="button" variant={period === "month" ? "default" : "outline"} onClick={() => setPeriod("month")}>Relatório mensal</Button>
+        <div className="grid grid-cols-3 gap-2">
+          <Button type="button" variant={period === "day" ? "default" : "outline"} onClick={() => setPeriod("day")}>Diário</Button>
+          <Button type="button" variant={period === "week" ? "default" : "outline"} onClick={() => setPeriod("week")}>Semanal</Button>
+          <Button type="button" variant={period === "month" ? "default" : "outline"} onClick={() => setPeriod("month")}>Mensal</Button>
         </div>
         {period === "month"
           ? <label className="block text-xs text-muted-foreground">Mês do relatório<Input className="mt-1 h-11" type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></label>
-          : <div className="space-y-2"><label className="block text-xs text-muted-foreground">Escolher semana (selecione uma data dentro dela)<Input className="mt-1 h-11" type="date" value={weekAnchor} onChange={(e) => setWeekAnchor(e.target.value)} /></label><div className="flex items-center justify-between gap-2"><Button type="button" variant="outline" size="sm" onClick={() => shiftWeek(-1)} aria-label="Semana anterior"><ChevronLeft className="mr-1 h-4 w-4" />Anterior</Button><span className="text-center text-sm font-medium"> {fmtDate(weekStart, "dd/MM/yyyy")} a {fmtDate(weekLast, "dd/MM/yyyy")}</span><Button type="button" variant="outline" size="sm" onClick={() => shiftWeek(1)} aria-label="Próxima semana">Próxima<ChevronRight className="ml-1 h-4 w-4" /></Button></div></div>}
+          : period === "day"
+            ? <label className="block text-xs text-muted-foreground">Dia do relatório<Input className="mt-1 h-11" type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} /></label>
+            : <div className="space-y-2"><label className="block text-xs text-muted-foreground">Escolher semana (selecione uma data dentro dela)<Input className="mt-1 h-11" type="date" value={weekAnchor} onChange={(e) => setWeekAnchor(e.target.value)} /></label><div className="flex items-center justify-between gap-2"><Button type="button" variant="outline" size="sm" onClick={() => shiftWeek(-1)} aria-label="Semana anterior"><ChevronLeft className="mr-1 h-4 w-4" />Anterior</Button><span className="text-center text-sm font-medium"> {fmtDate(weekStart, "dd/MM/yyyy")} a {fmtDate(weekLast, "dd/MM/yyyy")}</span><Button type="button" variant="outline" size="sm" onClick={() => shiftWeek(1)} aria-label="Próxima semana">Próxima<ChevronRight className="ml-1 h-4 w-4" /></Button></div></div>}
       </Card>
       {isLoading ? <Empty>Carregando relatórios…</Empty> : daysError || platformsError || expensesError ? <Card><p className="font-semibold text-destructive">Não foi possível carregar os relatórios.</p><p className="mt-1 text-sm text-muted-foreground">Verifique a conexão e tente recarregar a página antes de exportar.</p></Card> : <>
         <Card className="space-y-3">
@@ -206,7 +212,7 @@ function Relatorios() {
         </Card>
         <Card className="space-y-3">
           <div className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-primary" /><h2 className="font-semibold">Lucro e despesas por categoria</h2></div>
-          <p className="text-xs text-muted-foreground">{period === "month" ? "Distribuição do faturamento do mês entre os gastos registrados e o lucro líquido estimado. Os gastos fixos vêm de Ajustes." : "Distribuição do faturamento da semana entre as despesas registradas nos dias selecionados e a sobra estimada. Gastos fixos mensais não são incluídos no relatório semanal."}</p>
+          <p className="text-xs text-muted-foreground">{period === "month" ? "Distribuição do faturamento do mês entre os gastos registrados e o lucro líquido estimado. Os gastos fixos vêm de Ajustes." : period === "week" ? "Distribuição do faturamento da semana entre as despesas registradas nos dias selecionados e a sobra estimada. Gastos fixos mensais não são incluídos no relatório semanal." : "Distribuição do faturamento do dia selecionado entre as despesas registradas e a sobra estimada."}</p>
           {profitExpenseData.length === 0 ? <Empty>Registre faturamentos ou despesas para visualizar a distribuição.</Empty> : <>
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -226,7 +232,7 @@ function Relatorios() {
                 <Stat label={finalBalance < 0 ? "Déficit estimado" : "Lucro líquido estimado"} value={brl(finalBalance)} tone={finalBalance < 0 ? "neg" : "pos"} />
               </div>
             </div>
-            {finalBalance < 0 && <p className="text-xs text-muted-foreground">{period === "month" ? "As despesas superaram o faturamento neste mês; por isso o déficit aparece no resumo, e o gráfico detalha a composição dos gastos." : "As despesas dos dias selecionados superaram o faturamento da semana; o gráfico detalha a composição dos gastos."}</p>}
+            {finalBalance < 0 && <p className="text-xs text-muted-foreground">{period === "month" ? "As despesas superaram o faturamento neste mês; por isso o déficit aparece no resumo, e o gráfico detalha a composição dos gastos." : period === "week" ? "As despesas dos dias selecionados superaram o faturamento da semana; o gráfico detalha a composição dos gastos." : "As despesas superaram o faturamento do dia selecionado; o gráfico detalha a composição dos gastos."}</p>}
           </>}
         </Card>
         <Card className="space-y-3">

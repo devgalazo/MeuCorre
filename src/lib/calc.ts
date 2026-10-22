@@ -21,6 +21,7 @@ export type Totals = {
   dias: number; ganhos: number; combustivel: number; manutencao: number; equipamentos: number; passe: number;
   alimentacao: number; outros: number; despesas: number; lucroOp: number; total: number; sobra: number;
   km: number; horas: number; corridas: number; porHora: number; porKm: number;
+  brutoPorHora: number; liquidoPorHora: number; brutoPorKm: number; liquidoPorKm: number;
   dinheiro: number; cartao: number; gorjeta: number;
   porApp: Record<string, { ganhos: number; horas: number; corridas: number }>;
 };
@@ -29,6 +30,7 @@ export function sumDays(days: Day[]): Totals {
   const t: Totals = {
     dias: 0, ganhos: 0, combustivel: 0, manutencao: 0, equipamentos: 0, passe: 0, alimentacao: 0, outros: 0,
     despesas: 0, lucroOp: 0, total: 0, sobra: 0, km: 0, horas: 0, corridas: 0, porHora: 0, porKm: 0,
+    brutoPorHora: 0, liquidoPorHora: 0, brutoPorKm: 0, liquidoPorKm: 0,
     dinheiro: 0, cartao: 0, gorjeta: 0, porApp: {},
   };
   for (const d of days) {
@@ -49,8 +51,13 @@ export function sumDays(days: Day[]): Totals {
   t.total = t.lucroOp - t.equipamentos - t.passe;
   t.sobra = t.total - t.alimentacao - t.outros;
   t.despesas = t.combustivel + t.manutencao + t.equipamentos + t.passe + t.alimentacao + t.outros;
+  // Indicadores distintos: faturamento bruto, lucro operacional e sobra líquida.
   t.porHora = t.horas > 0 ? t.lucroOp / t.horas : 0;
   t.porKm = t.km > 0 ? t.lucroOp / t.km : 0;
+  t.brutoPorHora = t.horas > 0 ? t.ganhos / t.horas : 0;
+  t.liquidoPorHora = t.horas > 0 ? t.sobra / t.horas : 0;
+  t.brutoPorKm = t.km > 0 ? t.ganhos / t.km : 0;
+  t.liquidoPorKm = t.km > 0 ? t.sobra / t.km : 0;
   return t;
 }
 
@@ -62,19 +69,20 @@ export function fmtHours(h: number) {
   return `${hh}h${mm ? String(mm).padStart(2, "0") : ""}`;
 }
 
-/** Valida o texto das horas sem impedir a digitação de valores decimais com vírgula. */
+/** Aceita apenas horas:minutos ou horas decimais com até duas casas. */
 export function isValidHoursInput(value: string): boolean {
   const trimmed = value.trim().toLowerCase();
   if (!trimmed) return true;
   const clock = trimmed.match(/^(\d+)\s*[h:]\s*(\d{0,2})\s*(m|min)?$/);
   if (clock) return Number(clock[2] || 0) < 60;
-  return /^\d+(?:[.,]\d+)?$/.test(trimmed);
+  return /^\d+(?:[.,]\d{1,2})?$/.test(trimmed);
 }
 
-/** Aceita "7h30", "7:30", "7,5" ou "7.5" */
+/** Aceita "7h30", "7:30", "7,5" ou "7.5"; rejeita decimais longos e minutos inválidos. */
 export function parseHours(s: string): number {
   const v = s.trim().toLowerCase();
   if (!v) return 0;
+  if (!isValidHoursInput(v)) return 0;
   const m = v.match(/^(\d+)\s*[h:]\s*(\d{0,2})\s*(m|min)?$/);
   if (m) {
     const minutes = m[2] ? Number(m[2]) : 0;

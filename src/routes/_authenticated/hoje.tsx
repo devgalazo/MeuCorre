@@ -32,8 +32,12 @@ function Hoje() {
         <Card className="grid grid-cols-2 gap-4">
           <Stat label="Ganhos" value={isLoading || isError ? "..." : brl(t.ganhos)} />
           <Stat label="Despesas" value={isLoading || isError ? "..." : brl(t.despesas)} tone="neg" />
-          <Stat label="R$/hora" value={isLoading || isError ? "..." : brl(t.porHora)} />
-          <Stat label="R$/km" value={isLoading || isError ? "..." : brl(t.porKm)} />
+          <Stat label="R$/hora bruto" value={isLoading || isError ? "..." : brl(t.brutoPorHora)} />
+          <Stat label="R$/hora operacional" value={isLoading || isError ? "..." : brl(t.porHora)} />
+          <Stat label="R$/hora líquido" value={isLoading || isError ? "..." : brl(t.liquidoPorHora)} />
+          <Stat label="R$/km bruto" value={isLoading || isError ? "..." : brl(t.brutoPorKm)} />
+          <Stat label="R$/km operacional" value={isLoading || isError ? "..." : brl(t.porKm)} />
+          <Stat label="R$/km líquido" value={isLoading || isError ? "..." : brl(t.liquidoPorKm)} />
           <Stat label="Horas" value={isLoading || isError ? "..." : fmtHours(t.horas)} />
           <Stat label="Km" value={isLoading || isError ? "..." : num(t.km)} />
         </Card>
